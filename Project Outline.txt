@@ -1,0 +1,27 @@
+CSV
+    Auto gen
+    
+    Field Names:
+
+        Field name 	Description 
+        claim_id 	Claim Id 
+        customer_id 	Customer Id 
+        customer_name 	Customer Name 
+        Customer_age 	Customer Age 
+        agent_id 	Insurance Agent Id 
+        agent_name 	Insurance Agent Name 
+        claim_category 	Claim Category (Dental, Vision, Medical, Life, etc) 
+        amount 	Claim Amount ($) 
+        reason 	Reason for Claim 
+        agent_rating 	Customer rating for their respective agent 
+        datetime 	Date and time when the claim is filed 
+        country 	Customer Country 
+        state 	Customer State 
+        approval 	Reimbursement Approved or Denied (Y=Approved. N=Denied) 
+        reimbursement_id 	Reimbursement Confirmation Id 
+        failure_reason 	Reason for reimbursement failure 
+
+
+Into Hadoop via Hive
+
+Read/ Analysis (Hive and  Spark)
