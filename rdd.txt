@@ -1,0 +1,28 @@
+// readcsvrdd.scala
+package com.examples.spark.rdd
+
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.SparkSession
+
+object rdd extends App {
+
+  val spark:SparkSession = SparkSession.builder()
+    .master("local[1]")
+    .appName("ajaysingala.com")
+    .getOrCreate()
+
+  spark.sparkContext.setLogLevel("ERROR")
+
+  println("spark read csv files from a directory into RDD")
+  val rddFromFile = spark.sparkContext.textFile("/user/maria_dev/ins_csv.csv")
+  println(rddFromFile.getClass)
+  val rdd1 = rddFromFile.mapPartitionsWithIndex { (idx, iter) => if (idx == 0) iter.drop(1) else iter }
+
+  val rdd2 = rdd1.map(f=>{
+    f.split(",")
+  })
+
+  rdd2.foreach (x => if(x(3).toInt > 65 && x(13) == "Y") println(s"customer_name: ${x(2)} Age: ${x(3)} Approved?: ${x(13)}"))  
+  // rdd2.foreach (x => if(x(3).toInt > 65 ) println(s"${x(0)} : ${x(1)} : ${x(2)} : ${x(3)}"))
+
+}
