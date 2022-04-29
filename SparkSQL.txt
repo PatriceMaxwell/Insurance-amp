@@ -1,0 +1,40 @@
+package example
+
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.types._
+
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.Row
+
+object SparkSQL {
+  def main (args: Array[String]): Unit = {
+    val spark: SparkSession = SparkSession
+      .builder()
+      .master("local[3]")
+      .appName("AjaySingala")
+      .getOrCreate()
+    spark.sparkContext.setLogLevel("ERROR")
+
+    val sc = spark.sparkContext
+    import spark.implicits._
+
+// Treat the first row as header. Use .load() or .csv()
+    println("\nRead csv file into a DF specify 1st line as header and infer the schema...")
+    val df2 = spark.read
+      .option("header", true)
+      .option("inferSchema", true)
+      .csv("/user/maria_dev/ins_csv.csv")   
+    df2.printSchema()
+    df2.show()
+
+    // Running SQL Queries Programmatically.
+    // Register the DataFrame as a SQL temporary view
+    println("Creating View 'insurance'...")
+    df2.createOrReplaceTempView("insurance")
+
+    println("Display states with highest number of approved claims (57 approvals or higher).....")
+    val sqlDF = spark.sql("SELECT state, count(claim_id) FROM insurance WHERE approval = 'Y' GROUP BY state HAVING count(claim_id) > 56")
+    sqlDF.show()
+
+   }
+}
