@@ -1,0 +1,102 @@
+//Run on VM as: spark-submit ./scalahive_2.11.
+package project2
+
+import java.io.IOException;
+import java.io._;
+import scala.io._;
+import scala.util.{Try, Success, Failure};
+//connect to hive
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
+// HiveQL Imports
+import org.apache.hadoop.hive.cli.CliSessionState;
+import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.ql.Driver;
+import org.apache.hadoop.hive.ql.session.SessionState;
+import java.sql.Driver;
+//sparkSQL queries
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.types._
+// import spark.implicits._
+// import spark.sql
+
+// class HiveClient {
+
+//   val hiveConf = new HiveConf(classOf[HiveClient])
+
+//   /**
+//    * Get the hive ql driver to execute ddl or dml
+//    *
+//    * @return
+//    */
+//   private def getDriver: Driver = {
+//     val driver = new Driver(hiveConf)
+//     SessionState.start(new CliSessionState(hiveConf))
+//     driver}
+// }
+
+object Hiveone {
+   def main(args: Array[String]){
+       connectToHive()
+   }
+
+   def connectToHive(): Unit = {
+       
+       var con: java.sql.Connection = null;
+       try{
+           //Connection to Hive 2
+           var driverName = "org.apache.hive.jdbc.HiveDriver"
+           val conStr = "jdbc:hive2://sandbox-hdp.hortonworks.com:10000/default";
+           Class.forName(driverName);
+           con = DriverManager.getConnection(conStr, "", "");
+           // object to execute Hive Queries
+           val stmt = con.createStatement();
+           
+           //Show data in table insuranceAll
+           println("Show data in Insurance table")
+           val tableName = "default.insurance"
+           var viewdata = "SELECT * FROM " + tableName + " LIMIT 10";
+           var res = stmt.executeQuery(viewdata)
+           System.out.println("claim_id \t customer_id \t customer_name \t customer_age \t agent_id \t agent_name \t claim_category \t amount \t reason\t agent_rating\t datetime\t country \t state \t approval \t reimbursement_id \t failure_reason")
+           while(res.next()){
+               System.out.println(res.getString(1) + "\t" + res.getString(2) + "\t" + res.getString(3) + "\t" + res.getInt(4) 
+               + "\t" + res.getInt(5) + "\t" + res.getString(6) + "\t" + res.getString(7) + "\t" + res.getInt(8) + "\t"
+               + res.getString(9) + "\t" + res.getInt(10) + "\t" + res.getString(11) + "\t" + res.getString(12) + "\t" + res.getString(13) + "\t"
+               + res.getString(14) + "\t" + res.getString(15))
+           }
+        //    Order insuranceAll by agent raiting (distinct)
+           println("Top Agent Ratings")
+           var ratings = "SELECT agent_rating FROM " + tableName + " GROUP BY agent_rating LIMIT 1"
+           var res2 = stmt.executeQuery(ratings)
+           System.out.println("agent_name \t agent_rating")
+           while(res2.next()){
+               System.out.println(res.getString(6) + "\t" + res.getInt(10))
+           }
+        //    var ratings = stmt.executeQuery("SELECT * ORDER BY agent_rating")
+        //    System.out.println("claim_id \t customer_id \t customer_name \t agent_rating \t")
+        //    while(ratings.next()){
+        //        System.out.println(ratings.getString(10))
+        //    }
+       }catch {
+           case ex: Throwable =>{
+               ex.printStackTrace();
+               throw new Exception(s"${ex.getMessage}")
+           }
+       }finally {
+        try{ 
+            if (con != null)
+                con.close();
+        } catch {
+            case ex: Throwable => {
+                ex.printStackTrace();
+                throw new Exception(s"${ex.getMessage}")
+                }
+            }
+       }
+       
+    }
+   
+}
