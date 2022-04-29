@@ -3,81 +3,70 @@ package project2
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import java.io.PrintWriter;
-// Hive Imports
-import org.apache.hadoop.hive.cli.CliSessionState;
-import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.ql.Driver;
-import org.apache.hadoop.hive.ql.session.SessionState;
-import java.sql.Driver;
-import java.sql.DriverManager;
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.types._
+
 
 object loadToHDFS{
-    val path = "hdfs://sandbox-hdp.hortonworks.com:8020/user/maria_dev"
-    def main(args: Array[String]){
-        // createFile()
-        copyFromVM()
-        loadToHDFS2()
+  val path = "hdfs://sandbox-hdp.hortonworks.com:8020/user/maria_dev/"
+  val src = "file:///home/maria_dev/InsuranceClaims.csv"
+  val spark: SparkSession = SparkSession
+    .builder()
+    .master("local[3]")
+    .appName("Amplifire")
+    .getOrCreate()
+    spark.sparkContext.setLogLevel("ERROR")
+  val sc = spark.sparkContext
+  val sqlContext = new org.apache.spark.sql.hive.HiveContext(sc)
+
+  def main(args: Array[String]):Unit = {
+      toHive()
     }
-    def copyFromVM(): Unit = {
-        val src = "file:///home/maria_dev/Project2/InsuranceClaims.csv"
-        var target = path + "InsuranceClaims.csv"
-        println(s"Copying VM file $src to $target")
-
-        val conf = new Configuration()
-        val fs = FileSystem.get(conf)
-
-        val VMpath = new Path(src)
-        val hdfspath = new Path(target)
-
-        fs.copyFromLocalFile(false, VMpath, hdfspath)
-        println(s"Done copying VM file $src to $target...")
-    }
+  def copyFromLocal(): Unit = {
+    val target = path + "InsuranceClaims.csv"
+    println(s"Copying local file $src to $target ...")
     
-    def loadToHDFS2(): Unit = {
-        var con: java.sql.Connection = null;
-        
+    val conf = new Configuration()
+    val fs = FileSystem.get(conf)
 
-       try{
-           //Connection to Hive 2
-           var driverName = "org.apache.hive.jdbc.HiveDriver"
-           val conStr = "jdbc:hive2://sandbox-hdp.hortonworks.com:10000/default.Insurance";
-           Class.forName(driverName);
-           con = DriverManager.getConnection(conStr, "", "");
-           // object to execute Hive Queries
-           val stmt = con.createStatement();
-            //create table
-            val tableName = "insruanceall";
-            println(s"Dropping table $tableName..")
-            stmt.execute("drop table IF EXISTS " + tableName);
-            println(s"Creating table $tableName..")
-            stmt.execute(
-            "create table " + tableName + " (claim_id string, customer_id string, customer_name string, customer_age int, agent_id string, agent_name string, claim_category string, amount int, agent_rating double, datetime string, country string, state string, approval string reimbursement_id string, failure_reason string) row format delimited  fields terminated by ','"
-            );
-
-
-        //    Load into table
-         
-           val filePath = "/tmp/a.txt"
-           val sql = "load data local inpath'" + filePath + "' into table" + tableName;
-           System.out.println("Running: " + sql);
-           stmt.execute(sql);
-       }catch {
-           case ex: Throwable =>{
-               ex.printStackTrace();
-               throw new Exception(s"${ex.getMessage}")
-           }
-       }finally {
-        try{ 
-            if (con != null)
-                con.close();
-        } catch {
-            case ex: Throwable => {
-                ex.printStackTrace();
-                throw new Exception(s"${ex.getMessage}")
-                }
-            }
-       }
-       
+    val localpath = new Path(src)
+    val hdfspath = new Path(target)
+    
+    fs.copyFromLocalFile(false, localpath, hdfspath)
+    println(s"Done copying local file $src to $target ...")
+  }
+  def toHive(): Unit = {
+      
+      copyFromLocal() // moves the file into hdfs
+      sqlContext.sql("""CREATE TABLE IF NOT EXISTS default.Insurance (
+      claim_id string,
+      customer_id string,
+      customer_name string, 
+      customer_age int,
+      agent_id int,
+      agent_name string,
+      claim_category string,
+      amount int,
+      reason string,
+      agent_rating int,
+      datetime string,
+      country string,
+      state string,
+      approval string,
+      reimbursement_id string,
+      failure_reason string)
+      COMMENT 'Insurance Table'
+      ROW FORMAT DELIMITED
+      FIELDS TERMINATED BY ','""")
+    
+    sqlContext.sql("""LOAD DATA INPATH '/user/maria_dev/InsuranceClaims.csv' INTO TABLE default.Insurance""")
+    //var data = sqlContext.sql("""SELECT * FROM default.Insurance""")
     }
+
+def fromCSVFile(): Unit = {
+    val df = spark.read
+      .option("header", true)
+      .option("inferSchema", true)
+      .csv(src)
+}
 }
